@@ -1,7 +1,5 @@
 import History from "@/components/Home/History";
 
-import { LuBookOpen } from "react-icons/lu";
-
 // import { useSearchParams } from "next/navigation";
 
 type HistoryPageProps = {

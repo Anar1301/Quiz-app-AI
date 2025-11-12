@@ -1,7 +1,6 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { FaAngleLeft } from "react-icons/fa6";
 import { MdOutlineKeyboardArrowLeft } from "react-icons/md";
 import {
   Dialog,

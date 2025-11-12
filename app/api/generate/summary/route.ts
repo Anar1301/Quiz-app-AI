@@ -1,30 +1,52 @@
-import { query } from "@/lib/connectDb";
 import { GoogleGenAI } from "@google/genai";
 import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 
 const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY,
 });
 
+export async function GET() {
+  const articles = await prisma.article.findMany({
+    include: { Quiz: true },
+    orderBy: { id: "desc" },
+  });
+
+  return NextResponse.json({ data: articles });
+}
+
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const { Title, content } = await body;
+    const { articlecontent, articleTitle } = await req.json();
 
-    const prompt = `Please provide a concise summary of the following article: ${content}`;
-    const response = await ai.models.generateContent({
+    if (!articlecontent || !articleTitle) {
+      return NextResponse.json(
+        { error: "articlecontent болон articleTitle заавал хэрэгтэй" },
+        { status: 400 }
+      );
+    }
+
+    // Gemini API-аар summary гаргах
+    const prompt = `Please provide a concise summary of the following article: ${articlecontent}`;
+    const aiResponse = await ai.models.generateContent({
       model: "gemini-2.5-flash",
       contents: prompt,
     });
-    await query(
-      `INSERT INTO articles (title, content, summery ) VALUES ($1,$2, $3)`,
-      [Title, content, response.text]
-    );
-    const id = await query("SELECT id FROM articles ORDER BY id DESC LIMIT 1");
-    console.log({ id });
+
+    const summary = (aiResponse as any).text ?? aiResponse;
+
+    // Article хадгалах (Prisma ашиглан)
+    const createdArticle = await prisma.article.create({
+      data: {
+        title: articleTitle,
+        content: articlecontent,
+        summary: summary,
+      },
+    });
+
     return NextResponse.json({
-      data: (response as any).text ?? response,
-      id: id,
+      message: "Article амжилттай үүслээ",
+      data: createdArticle,
     });
   } catch (err: any) {
     console.error("POST /api/generate error:", err);

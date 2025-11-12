@@ -12,9 +12,9 @@ const Home = () => {
     ID: string[];
   };
   const [page, setPage] = useState<string>("page");
-  const [articlecontent, setArticlecontent] = useState<string>("");
-  const [articleTitle, setArticleTitle] = useState<string>("");
-  const [articleSummary, setArticleSummary] = useState<string>("");
+  const [content, setcontent] = useState<string>("");
+  const [Title, setTitle] = useState<string>("");
+  const [Summary, setSummary] = useState<string>("");
   const [takeID, setTakeID] = useState<string>("");
   const [step, setStep] = useState(0);
   const [generatedtext, setGeneratedtext] = useState<Quistions[]>([]);
@@ -24,14 +24,14 @@ const Home = () => {
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ articlecontent, articleTitle }),
+      body: JSON.stringify({ content, Title }),
     });
     const rawData = await response.json();
     console.log({ rawData });
     if (rawData.data.length > 1) {
       setPage("summary");
     }
-    setArticleSummary(rawData.data);
+    setSummary(rawData.data);
     setTakeID(rawData.id.rows[0].id);
   };
   const HandleOnPost = async () => {
@@ -40,7 +40,7 @@ const Home = () => {
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ articleSummary, takeID }),
+      body: JSON.stringify({ Summary, takeID }),
     });
 
     const rawData = await response.json();
@@ -92,8 +92,8 @@ const Home = () => {
               <Input
                 placeholder="Enter a title for your article.."
                 type="text"
-                value={articleTitle}
-                onChange={(e) => setArticleTitle(e.target.value)}
+                value={Title}
+                onChange={(e) => setTitle(e.target.value)}
               />
               <div className="mt-5 text-[#71717A] flex gap-2">
                 <img src="/Shape.svg" />
@@ -101,8 +101,8 @@ const Home = () => {
               </div>
               <Textarea
                 placeholder="Paste your article content here..."
-                value={articlecontent}
-                onChange={(e) => setArticlecontent(e.target.value)}
+                value={content}
+                onChange={(e) => setcontent(e.target.value)}
               />
               <div className="flex justify-end">
                 <Button onClick={() => HandleOnContent()} className="mt-5 ">
@@ -129,8 +129,8 @@ const Home = () => {
                 <img src="/Shape.svg" />
                 Summarized Content
               </div>
-              <div className="font-bold mt-4">{articleTitle}</div>
-              <div className="mt-4">{articleSummary}</div>
+              <div className="font-bold mt-4">{Title}</div>
+              <div className="mt-4">{Summary}</div>
               <div className="flex justify-between mt-5">
                 <Button className="bg-white text-black border-2">
                   See content

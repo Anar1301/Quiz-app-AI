@@ -23,13 +23,11 @@ export default function Home() {
     "page"
   );
   const [content, setContent] = useState("");
-  const [loading, setLoading] = useState<boolean>(false);
   const [Title, setTitle] = useState("");
   const [Summary, setSummary] = useState("");
   const [takeID, setTakeID] = useState("");
   const [generatedtext, setGeneratedtext] = useState<Question[]>([]);
   const [step, setStep] = useState(0);
-  const [score, setScore] = useState(0);
   const [userAnswers, setUserAnswers] = useState<UserAnswer[]>([]);
   const [correctAnswers, setCorrectAnswers] = useState(0);
 
