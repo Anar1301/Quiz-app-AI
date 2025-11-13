@@ -18,11 +18,12 @@ export function AppSidebar() {
   };
   const [history, SetHistory] = useState<History[]>([]);
   const getHistory = async () => {
-    const result = await fetch("/api/generate");
+    const result = await fetch("/api/generate/summary");
 
     const responseData = await result.json();
 
     const { data } = responseData;
+    console.log({ data });
 
     SetHistory(data);
   };
@@ -32,8 +33,7 @@ export function AppSidebar() {
   console.log({ history });
   const HistoryOnclick = async (data: { id: string }) => {
     const ID = data.id;
-    // router.push(`/history?id=${ID}`);
-    router.push(`/turshih?search=${ID}`);
+    router.push(`/history?search=${ID}`);
   };
   const DeleteTitle = async (data: { id: string }) => {
     if (confirm("Are u sure ?") === true) {

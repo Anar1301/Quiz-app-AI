@@ -6,7 +6,7 @@ export async function POST(req: NextRequest) {
   try {
     const { ID } = await req.json();
     const id = ID;
-    const deletetitle = await prisma.articles.delete({
+    const deletetitle = await prisma.article.delete({
       where: {
         id: id,
       },

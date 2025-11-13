@@ -1,16 +1,17 @@
 "use client";
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { MdOutlineKeyboardArrowLeft } from "react-icons/md";
-import Link from "next/link";
 
 type Question = {
   question: string;
   options: string[];
   answer: string;
 };
+
 type UserAnswer = {
   question: string;
   selected: string;
@@ -18,245 +19,229 @@ type UserAnswer = {
   isCorrect: boolean;
 };
 
-export default function Home() {
-  const [page, setPage] = useState<"page" | "summary" | "test" | "last">(
-    "page"
+export default function ArticleQuiz() {
+  const [page, setPage] = useState<"start" | "summary" | "quiz" | "result">(
+    "start"
   );
-  const [content, setContent] = useState("");
-  const [Title, setTitle] = useState("");
-  const [Summary, setSummary] = useState("");
-  const [takeID, setTakeID] = useState("");
-  const [generatedtext, setGeneratedtext] = useState<Question[]>([]);
+  const [articleTitle, setArticleTitle] = useState("");
+  const [articleContent, setArticleContent] = useState("");
+  const [articleSummary, setArticleSummary] = useState("");
+  const [takeID, setTakeID] = useState<number | null>(null);
+  const [questions, setQuestions] = useState<Question[]>([]);
   const [step, setStep] = useState(0);
   const [userAnswers, setUserAnswers] = useState<UserAnswer[]>([]);
   const [correctAnswers, setCorrectAnswers] = useState(0);
+  const [loading, setLoading] = useState(false);
 
-  const HandleOnContent = async () => {
-    const response = await fetch("/api/generate/summary", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content, Title }),
-    });
-
-    const rawData = await response.json();
-    const cleanedText = extractJsonArray(rawData.data || rawData);
-    setSummary(cleanedText);
-
+  // 🧠 Summary үүсгэх
+  const handleGenerateSummary = async () => {
+    if (!articleContent || !articleTitle) return;
     try {
-      // const parsedArray = JSON.parse(cleanedText);
-      // console.log({ parsedArray });
-
-      if (cleanedText.length > 0) {
-        setPage("test");
-      }
-    } catch (e) {
-      console.error("JSON parse error:", e);
-    }
-    if (rawData.data) {
-      setTakeID(rawData.id.rows[0].id);
+      setLoading(true);
+      const res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ articlecontent: articleContent, articleTitle }),
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      setArticleSummary(data.data.summary);
+      setTakeID(data.data.id);
       setPage("summary");
+    } catch (err: any) {
+      alert("Summary үүсгэхэд алдаа гарлаа: " + err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const HandleOnPost = async () => {
-    const response = await fetch("/api/generate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ Summary, takeID }),
-    });
-
-    const rawData = await response.json();
-    const cleanedText = extractJsonArray(rawData.data || rawData);
-    console.log("2", cleanedText);
-
+  // 🤖 Quiz үүсгэх
+  const handleGenerateQuiz = async () => {
+    if (!articleSummary || !takeID) {
+      alert("Summary болон ID дутуу байна!");
+      return;
+    }
     try {
-      const parsedArray = JSON.parse(cleanedText);
-      setGeneratedtext(parsedArray);
-      if (parsedArray.length > 0) setPage("test");
-    } catch (e) {
-      console.error("JSON parse error:", e);
+      setLoading(true);
+      const res = await fetch("/api/generate/quiz", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ articleSummary, takeID }),
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      setQuestions(data.data);
+      setStep(0);
+      setUserAnswers([]);
+      setCorrectAnswers(0);
+      setPage("quiz");
+    } catch (err: any) {
+      alert("Quiz үүсгэхэд алдаа гарлаа: " + err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const extractJsonArray = (text: unknown): string => {
-    const safeText = typeof text === "string" ? text : JSON.stringify(text);
-
-    const match = safeText.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-    return match ? match[1].trim() : safeText.trim();
-  };
-
-  const HandleOnAnswer = (selectedIndex: number) => {
-    const current = generatedtext[step];
+  // Хариулт шалгах
+  const handleAnswer = (idx: number) => {
+    const current = questions[step];
     const correctIndex = parseInt(current.answer);
-    const isCorrect = selectedIndex === correctIndex;
-    const selected = current.options[selectedIndex];
-    const correct = current.options[correctIndex];
+    const isCorrect = idx === correctIndex;
 
-    if (isCorrect) setCorrectAnswers((prev) => prev + 1);
     setUserAnswers((prev) => [
       ...prev,
       {
         question: current.question,
-        selected,
-        correct,
+        selected: current.options[idx],
+        correct: current.options[correctIndex],
         isCorrect,
       },
     ]);
 
-    if (step + 1 >= generatedtext.length) {
-      setPage("last");
-    } else {
-      setStep((prev) => prev + 1);
-    }
+    if (isCorrect) setCorrectAnswers((prev) => prev + 1);
+
+    if (step + 1 >= questions.length) setPage("result");
+    else setStep(step + 1);
+  };
+
+  // 🚀 Reset function
+  const resetAll = () => {
+    setArticleContent("");
+    setArticleTitle("");
+    setArticleSummary("");
+    setTakeID(null);
+    setQuestions([]);
+    setStep(0);
+    setUserAnswers([]);
+    setCorrectAnswers(0);
+    setPage("start");
   };
 
   return (
-    <div className="bg-accent w-screen h-screen p-10 ">
-      {page === "page" && (
-        <div className="w-[856px] ml-50 bg-white border-2 rounded-md p-6 mt-50">
-          <div className="flex gap-2 mb-2">
-            <img src="/Vector.svg" />
-            <Link href="/turshih?search=my-project">
-              <h1 className="font-bold text-3xl">Article Quiz Generator</h1>
-            </Link>
-          </div>
-          <p className="text-gray-600 mb-4">
-            Paste your article below to generate a summary and quiz questions.
-          </p>
-
-          <label className="text-gray-700 flex gap-2 mb-2">
-            <img src="/Shape.svg" />
-            Article title
-          </label>
-          <Input
-            placeholder="Enter a title..."
-            value={Title}
-            onChange={(e) => setTitle(e.target.value)}
-          />
-
-          <label className="text-gray-700 flex gap-2 mt-5 mb-2">
-            <img src="/Shape.svg" />
-            Article content
-          </label>
-          <Textarea
-            placeholder="Paste your article content here..."
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-          />
-
-          <div className="flex justify-end">
-            <Button
-              onClick={HandleOnContent}
-              className="mt-5"
-              disabled={!content}
-            >
-              Generate summary
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {page === "summary" && (
-        <div>
-          <div
-            className="w-12 h-10 border-2 flex items-center justify-center ml-34 mb-5 "
-            onClick={() => setPage("page")}
-          >
-            <MdOutlineKeyboardArrowLeft />
-          </div>
-
-          <div className="w-[856px] mt-50 mx-auto bg-white border-2 rounded-md p-6">
-            <div className="flex gap-2 mb-2">
-              <img src="/Vector.svg" />
-              <h1 className="font-bold text-3xl">Article Quiz Generator</h1>
-            </div>
-
-            <p className="text-gray-700 flex gap-2 mb-2 mt-5">
-              <img src="/Shape.svg" />
-              Summarized Content
+    <div className="bg-gray-100 w-screen min-h-screen p-10 flex justify-center">
+      <div className="w-full max-w-[700px] mt-50 ml-50">
+        {/* ================= START PAGE ================= */}
+        {page === "start" && (
+          <div className="bg-white border rounded-md p-6">
+            <h1 className="text-3xl font-bold flex items-center gap-2 mb-4">
+              <img src="/Vector.svg" /> Article Quiz Generator
+            </h1>
+            <p className="text-gray-600 mb-4">
+              Paste your article below to generate a summary and quiz questions.
             </p>
-            <h2 className="font-bold mt-4">{Title}</h2>
-            <p className="mt-4">{Summary}</p>
+            <label className="text-gray-700 mb-2 flex gap-2">
+              Article Title
+            </label>
+            <Input
+              value={articleTitle}
+              onChange={(e) => setArticleTitle(e.target.value)}
+            />
+            <label className="text-gray-700 mt-4 mb-2 flex gap-2">
+              Article Content
+            </label>
+            <Textarea
+              value={articleContent}
+              onChange={(e) => setArticleContent(e.target.value)}
+            />
+            <div className="flex justify-end mt-4">
+              <Button onClick={handleGenerateSummary} disabled={loading}>
+                {loading ? "Generating..." : "Generate Summary"}
+              </Button>
+            </div>
+          </div>
+        )}
 
-            <div className="flex justify-between mt-5">
-              <Button variant="outline" onClick={() => setPage("page")}>
+        {/* ================= SUMMARY PAGE ================= */}
+        {page === "summary" && (
+          <div className="bg-white border rounded-md p-6">
+            <div
+              className="flex items-center gap-2 mb-4 cursor-pointer"
+              onClick={() => setPage("start")}
+            >
+              <MdOutlineKeyboardArrowLeft /> Back
+            </div>
+            <h1 className="text-3xl font-bold flex items-center gap-2 mb-4">
+              <img src="/Vector.svg" /> Article Summary
+            </h1>
+            <h2 className="font-bold text-lg">{articleTitle}</h2>
+            <p className="mt-2 text-gray-700 whitespace-pre-wrap">
+              {articleSummary}
+            </p>
+            <div className="flex justify-between mt-6">
+              <Button variant="outline" onClick={() => setPage("start")}>
                 Back
               </Button>
-              <Button onClick={HandleOnPost}>Take a quiz</Button>
+              <Button onClick={handleGenerateQuiz} disabled={loading}>
+                {loading ? "Generating Quiz..." : "Take a Quiz"}
+              </Button>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {page === "test" && generatedtext[step] && (
-        <div className="w-[700px] mt-50 mx-auto bg-white border-2 rounded-md p-6">
-          <div className="flex justify-between items-center">
-            <h1 className="text-3xl font-bold">Quick Test</h1>
-            <Button variant="outline" onClick={() => setPage("page")}>
-              X
-            </Button>
-          </div>
-
-          <p className="text-gray-600 mt-2">
-            Question {step + 1} / {generatedtext.length}
-          </p>
-
-          <div className="mt-6">
-            <h2 className="text-2xl font-semibold mb-6">
-              {generatedtext[step].question}
+        {/* ================= QUIZ PAGE ================= */}
+        {page === "quiz" && questions[step] && (
+          <div className="bg-white border rounded-md p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h1 className="text-3xl font-bold flex items-center gap-2">
+                <img src="/Vector.svg" /> Quick Test
+              </h1>
+              <Button variant="outline" onClick={resetAll}>
+                X
+              </Button>
+            </div>
+            <p className="text-gray-600 mb-4">
+              Question {step + 1} / {questions.length}
+            </p>
+            <h2 className="text-2xl font-semibold mb-4">
+              {questions[step].question}
             </h2>
-
-            <div className="flex flex-col gap-3 ">
-              {generatedtext[step].options.map((opt, idx) => (
+            <div className="flex flex-col gap-3">
+              {questions[step].options.map((opt, idx) => (
                 <Button
                   key={idx}
                   variant="outline"
-                  onClick={() => HandleOnAnswer(idx)}
+                  onClick={() => handleAnswer(idx)}
                 >
                   {opt}
                 </Button>
               ))}
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {page === "last" && generatedtext && (
-        <div className="w-[600px] h-fit ml-64 mt-50">
-          <div className="mx-7">
-            <div className="flex justify-between w-[600px]">
-              <div className="flex gap-2">
-                <img src="/Vector.svg" />
-                <div className="font-bold text-[32px]">Quiz completed</div>
-              </div>
+        {/* ================= RESULT PAGE ================= */}
+        {page === "result" && (
+          <div className="bg-white border rounded-md p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h1 className="text-3xl font-bold flex items-center gap-2">
+                <img src="/Vector.svg" /> Quiz Completed
+              </h1>
+              <Button variant="outline" onClick={resetAll}>
+                X
+              </Button>
             </div>
-
-            <div className="mt-2 text-[#71717A]">Let's see what you did</div>
-            <div className="mt-6 border-2 bg-white rounded-md w-[600px] p-6">
-              <div className="font-bold text-[32px]">
-                Your score: {correctAnswers}
-                <span className="text-[#71717A] text-[20px]">
-                  / {generatedtext.length}
-                </span>
+            <p className="text-gray-600 mb-4">Here’s your score</p>
+            <div className="border-2 rounded-md p-6 mb-4">
+              <div className="text-3xl font-bold mb-4">
+                Your score: {correctAnswers} / {questions.length}
               </div>
-
-              <div className="mt-5">
-                {userAnswers.map((ans, index) => (
-                  <div key={index} className="flex gap-3 mb-4">
+              <div className="space-y-4 mb-4">
+                {userAnswers.map((ans, i) => (
+                  <div key={i} className="flex gap-3 items-start border-b pb-3">
                     <img
                       src={ans.isCorrect ? "/rigth.svg" : "/wrong.svg"}
                       className="w-6 h-6 mt-1"
                     />
                     <div>
-                      <div className="text-[#737373] font-medium">
-                        {index + 1}. {ans.question}
+                      <div className="text-gray-700 font-medium">
+                        {i + 1}. {ans.question}
                       </div>
-                      <div className="text-[#171717]">
+                      <div className="text-gray-800">
                         Your answer: {ans.selected}
                       </div>
                       <div
                         className={
-                          ans.isCorrect ? "text-[#22C55E]" : "text-[#EF4444]"
+                          ans.isCorrect ? "text-green-600" : "text-red-600"
                         }
                       >
                         Correct: {ans.correct}
@@ -265,39 +250,24 @@ export default function Home() {
                   </div>
                 ))}
               </div>
-
-              <div className="flex justify-between my-7">
+              <div className="flex justify-between">
                 <Button
-                  className="w-44 h-10 bg-white text-black border-2 text-[20px]"
+                  variant="outline"
                   onClick={() => {
                     setStep(0);
                     setCorrectAnswers(0);
                     setUserAnswers([]);
-                    setPage("test");
+                    setPage("quiz");
                   }}
                 >
-                  <img src="/reload.svg" /> Restart quiz
+                  Restart Quiz
                 </Button>
-                <Button
-                  className="w-44 h-10"
-                  onClick={() => {
-                    setPage("page");
-                    setStep(0);
-                    setCorrectAnswers(0);
-                    setUserAnswers([]);
-                    setTitle("");
-                    setContent("");
-                    setSummary("");
-                  }}
-                >
-                  <img src="/favorite.svg" />
-                  Save and leave
-                </Button>
+                <Button onClick={resetAll}>Save and Leave</Button>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

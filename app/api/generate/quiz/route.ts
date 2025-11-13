@@ -1,6 +1,6 @@
+import { prisma } from "@/lib/prisma";
 import { GoogleGenAI } from "@google/genai";
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 
 const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY,
@@ -8,16 +8,16 @@ const ai = new GoogleGenAI({
 
 export async function POST(req: NextRequest) {
   try {
-    const { articleSummary, takeID } = await req.json();
+    const { Summary, takeID } = await req.json();
 
-    if (!articleSummary || !takeID) {
+    if (!Summary || !takeID) {
       return NextResponse.json(
-        { error: "articleSummary болон takeID заавал хэрэгтэй" },
+        { error: "Summary болон takeID заавал хэрэгтэй" },
         { status: 400 }
       );
     }
 
-    const prompt = `Generate 5 multiple choice questions based on this article: ${articleSummary}.
+    const prompt = `Generate 5 multiple choice questions based on this article: ${Summary}.
 Return valid JSON like:
 [
   { "question": "Question", "options": ["A","B","C","D"], "answer": "0" }
@@ -27,6 +27,7 @@ Return valid JSON like:
       model: "gemini-2.5-flash",
       contents: prompt,
     });
+    console.log({ aiResponse });
 
     const text = (aiResponse as any).text ?? aiResponse;
 

@@ -1,6 +1,6 @@
+import { prisma } from "@/lib/prisma";
 import { GoogleGenAI } from "@google/genai";
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 
 const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY,
@@ -17,17 +17,17 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
-    const { articlecontent, articleTitle } = await req.json();
+    const { content, Title } = await req.json();
 
-    if (!articlecontent || !articleTitle) {
+    if (!content || !Title) {
       return NextResponse.json(
-        { error: "articlecontent болон articleTitle заавал хэрэгтэй" },
+        { error: "content болон Title заавал хэрэгтэй" },
         { status: 400 }
       );
     }
 
     // Gemini API-аар summary гаргах
-    const prompt = `Please provide a concise summary of the following article: ${articlecontent}`;
+    const prompt = `Please provide a concise summary of the following article: ${content}`;
     const aiResponse = await ai.models.generateContent({
       model: "gemini-2.5-flash",
       contents: prompt,
@@ -38,8 +38,8 @@ export async function POST(req: NextRequest) {
     // Article хадгалах (Prisma ашиглан)
     const createdArticle = await prisma.article.create({
       data: {
-        title: articleTitle,
-        content: articlecontent,
+        title: Title,
+        content: content,
         summary: summary,
       },
     });

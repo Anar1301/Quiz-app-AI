@@ -1,4 +1,3 @@
-import { query } from "@/lib/connectDb";
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -6,26 +5,33 @@ export async function POST(req: NextRequest) {
   try {
     const { ID } = await req.json();
 
-    const historyArticles = await query(
-      `
-      SELECT 
-        a.id, 
-        a.title, 
-        a.content, 
-        a.summery, 
-        q.question, 
-        q.options, 
-        q.answer
-      FROM articles a
-      LEFT JOIN quiz q ON a.id = q.article_id
-      WHERE a.id = $1
-      `,
-      [ID]
-    );
+    if (!ID) {
+      return NextResponse.json(
+        { error: "Article ID заавал хэрэгтэй" },
+        { status: 400 }
+      );
+    }
 
-    return NextResponse.json({ data: historyArticles.rows ?? [] });
+    const article = await prisma.article.findUnique({
+      where: { id: Number(ID) },
+      include: {
+        Quiz: {
+          select: {
+            question: true,
+            options: true,
+            answer: true,
+          },
+        },
+      },
+    });
+
+    if (!article) {
+      return NextResponse.json({ error: "Article олдсонгүй" }, { status: 404 });
+    }
+
+    return NextResponse.json({ data: article });
   } catch (error: any) {
-    console.error("Error fetching history:", error);
+    console.error("Error fetching article history:", error);
     return NextResponse.json(
       { error: error.message ?? "Unknown error" },
       { status: 500 }
