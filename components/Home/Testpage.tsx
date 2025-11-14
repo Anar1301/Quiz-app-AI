@@ -72,7 +72,7 @@ const TestPage = ({
                     setTimerRunning(false);
                   }}
                 >
-                  Cancel Quiz
+                  Cancel quiz
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
@@ -84,15 +84,15 @@ const TestPage = ({
       </div>
       <div className="flex items-center justify-between mt-5">
         <div className="mb-6 font-semibold text-lg ">
-          {result.data.Quiz[step].question}
+          {result.quiz[step].question}
         </div>
         <div className="mb-4 text-gray-500 ">
-          {step + 1} / {result.data.Quiz.length}
+          {step + 1} / {result.quiz.length}
         </div>
       </div>
 
       <div className="flex flex-wrap gap-2">
-        {result.data.Quiz[step].options.map((opt, idx) => (
+        {result.quiz[step].options.map((opt, idx) => (
           <Button
             key={idx}
             variant="outline"

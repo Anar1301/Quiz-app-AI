@@ -1,51 +1,47 @@
 "use client";
-
+import { toast } from "sonner";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { MdOutlineKeyboardArrowLeft } from "react-icons/md";
-
-type Question = {
-  question: string;
-  options: string[];
-  answer: string;
-};
-
-type UserAnswer = {
-  question: string;
-  selected: string;
-  correct: string;
-  isCorrect: boolean;
-};
+import { Question, UserAnswer } from "@/lib/types";
+import { useUser } from "@clerk/nextjs";
 
 export default function ArticleQuiz() {
   const [page, setPage] = useState<"start" | "summary" | "quiz" | "result">(
     "start"
   );
-  const [articleTitle, setArticleTitle] = useState("");
-  const [articleContent, setArticleContent] = useState("");
-  const [articleSummary, setArticleSummary] = useState("");
+  const [Title, setTitle] = useState("");
+  const [Content, setContent] = useState("");
+  const [Summary, setSummary] = useState("");
   const [takeID, setTakeID] = useState<number | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [step, setStep] = useState(0);
   const [userAnswers, setUserAnswers] = useState<UserAnswer[]>([]);
   const [correctAnswers, setCorrectAnswers] = useState(0);
   const [loading, setLoading] = useState(false);
-
+  const { user } = useUser();
   // 🧠 Summary үүсгэх
   const handleGenerateSummary = async () => {
-    if (!articleContent || !articleTitle) return;
+    if (!user) {
+      alert("Ta ehleed newterj ornuu");
+    }
+    if (!Content || !Title) return;
     try {
       setLoading(true);
-      const res = await fetch("/api/generate", {
+      const res = await fetch("/api/generate/summary", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ articlecontent: articleContent, articleTitle }),
+        body: JSON.stringify({
+          articlecontent: Content,
+          Title,
+          user,
+        }),
       });
       const data = await res.json();
       if (data.error) throw new Error(data.error);
-      setArticleSummary(data.data.summary);
+      setSummary(data.data.summary);
       setTakeID(data.data.id);
       setPage("summary");
     } catch (err: any) {
@@ -57,7 +53,7 @@ export default function ArticleQuiz() {
 
   // 🤖 Quiz үүсгэх
   const handleGenerateQuiz = async () => {
-    if (!articleSummary || !takeID) {
+    if (!Summary || !takeID) {
       alert("Summary болон ID дутуу байна!");
       return;
     }
@@ -66,7 +62,7 @@ export default function ArticleQuiz() {
       const res = await fetch("/api/generate/quiz", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ articleSummary, takeID }),
+        body: JSON.stringify({ Summary, takeID }),
       });
       const data = await res.json();
       if (data.error) throw new Error(data.error);
@@ -104,11 +100,10 @@ export default function ArticleQuiz() {
     else setStep(step + 1);
   };
 
-  // 🚀 Reset function
   const resetAll = () => {
-    setArticleContent("");
-    setArticleTitle("");
-    setArticleSummary("");
+    setContent("");
+    setTitle("");
+    setSummary("");
     setTakeID(null);
     setQuestions([]);
     setStep(0);
@@ -119,7 +114,7 @@ export default function ArticleQuiz() {
 
   return (
     <div className="bg-gray-100 w-screen min-h-screen p-10 flex justify-center">
-      <div className="w-full max-w-[700px] mt-50 ml-50">
+      <div className="w-full max-w-[700px] mt-50 ml-10">
         {/* ================= START PAGE ================= */}
         {page === "start" && (
           <div className="bg-white border rounded-md p-6">
@@ -132,19 +127,16 @@ export default function ArticleQuiz() {
             <label className="text-gray-700 mb-2 flex gap-2">
               Article Title
             </label>
-            <Input
-              value={articleTitle}
-              onChange={(e) => setArticleTitle(e.target.value)}
-            />
+            <Input value={Title} onChange={(e) => setTitle(e.target.value)} />
             <label className="text-gray-700 mt-4 mb-2 flex gap-2">
               Article Content
             </label>
             <Textarea
-              value={articleContent}
-              onChange={(e) => setArticleContent(e.target.value)}
+              value={Content}
+              onChange={(e) => setContent(e.target.value)}
             />
             <div className="flex justify-end mt-4">
-              <Button onClick={handleGenerateSummary} disabled={loading}>
+              <Button onClick={handleGenerateSummary} disabled={!Content}>
                 {loading ? "Generating..." : "Generate Summary"}
               </Button>
             </div>
@@ -163,10 +155,8 @@ export default function ArticleQuiz() {
             <h1 className="text-3xl font-bold flex items-center gap-2 mb-4">
               <img src="/Vector.svg" /> Article Summary
             </h1>
-            <h2 className="font-bold text-lg">{articleTitle}</h2>
-            <p className="mt-2 text-gray-700 whitespace-pre-wrap">
-              {articleSummary}
-            </p>
+            <h2 className="font-bold text-lg">{Title}</h2>
+            <p className="mt-2 text-gray-700 whitespace-pre-wrap">{Summary}</p>
             <div className="flex justify-between mt-6">
               <Button variant="outline" onClick={() => setPage("start")}>
                 Back

@@ -1,6 +1,5 @@
-import React from "react";
 import { Button } from "../ui/button";
-import { HistoryDataType, UserAnswer } from "@/lib/types";
+import { HistoryDataType } from "@/lib/types";
 
 import { LuBookOpen } from "react-icons/lu";
 import Link from "next/link";
@@ -13,6 +12,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "../ui/dialog";
+import HistoryDrawer from "./HistoryDrawer";
 
 const HomePage = ({
   setPage,
@@ -22,7 +22,9 @@ const HomePage = ({
   result,
   setSeconds,
   setTimerRunning,
+  userid,
 }: {
+  userid: string | number;
   setSeconds: Function;
   setPage: Function;
   setStep: Function;
@@ -32,6 +34,18 @@ const HomePage = ({
 
   setTimerRunning: Function;
 }) => {
+  const GoToTest = () => {
+    if (result.quiz.length === 0) {
+      alert("Sorry this article has a no questions");
+      return;
+    }
+    setPage("test");
+    setStep(0);
+    setUserAnswers([]);
+    setCorrectAnswers(0);
+    setSeconds(0);
+    setTimerRunning(true);
+  };
   return (
     <div>
       <Link href="/">
@@ -47,12 +61,12 @@ const HomePage = ({
       <div className="text-gray-500 mb-2 flex items-center gap-2">
         <LuBookOpen /> Summary
       </div>
-      <div className="text-lg font-semibold mb-2">{result.data.title}</div>
-      <div className="mb-4">{result.data.summary}</div>
+      <div className="text-lg font-semibold mb-2">{result.title}</div>
+      <div className="mb-4">{result.summary}</div>
 
       <div className="text-gray-500 mb-2">Content:</div>
 
-      <div className="h-10 truncate mb-4">{result.data.content}</div>
+      <div className="h-10 truncate mb-4">{result.content}</div>
 
       <Dialog>
         <DialogTrigger asChild>
@@ -63,10 +77,10 @@ const HomePage = ({
         <DialogContent className="max-w-[600px] p-6 border-2 rounded-xl bg-white">
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold mb-2">
-              {result.data.title}
+              {result.title}
             </DialogTitle>
           </DialogHeader>
-          <div className="text-gray-700">{result.data.content}</div>
+          <div className="text-gray-700">{result.content}</div>
 
           <div className="flex justify-end mt-4">
             <DialogClose asChild>
@@ -76,19 +90,13 @@ const HomePage = ({
         </DialogContent>
       </Dialog>
 
-      <Button
-        className="mt-2 w-[124px]"
-        onClick={() => {
-          setPage("test");
-          setStep(0);
-          setUserAnswers([]);
-          setCorrectAnswers(0);
-          setSeconds(0);
-          setTimerRunning(true);
-        }}
-      >
+      <Button className="mt-2 w-[124px]" onClick={() => GoToTest()}>
         Take Quiz
       </Button>
+
+      <div className="mt-10">
+        <HistoryDrawer userId={userid} />
+      </div>
     </div>
   );
 };

@@ -14,7 +14,9 @@ const LastPage = ({
   userAnswers,
   router,
   setTimerRunning,
+  SaveAndLeave,
 }: {
+  SaveAndLeave: Function;
   setPage: Function;
   setStep: Function;
   setUserAnswers: Function;
@@ -46,7 +48,7 @@ const LastPage = ({
 
       <div className="text-gray-500 mb-2">Your score:</div>
       <div className="font-bold text-xl mb-2">
-        {correctAnswers} / {result.data.Quiz.length}
+        {correctAnswers} / {result.quiz.length}
       </div>
       <div className="text-gray-500 mb-4">
         Time spent: {Math.floor(seconds / 60)}:
@@ -89,7 +91,7 @@ const LastPage = ({
         >
           Restart Quiz
         </Button>
-        <Button onClick={() => router.push(`/`)}>Save and Leave</Button>
+        <Button onClick={() => SaveAndLeave()}>Save and Leave</Button>
       </div>
     </div>
   );

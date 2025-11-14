@@ -8,19 +8,73 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model articles {
-  id             Int     @id @default(autoincrement())
-  title   String? @db.VarChar(1000)
-  content String?
-  summery String?
+model user {
+  id          Int           @id @default(autoincrement())
+  clerk_id    String?
+  email       String?       @unique
+  name        String?
+  createdat   DateTime?     @default(now()) @db.Timestamp(6)
+  updateat    DateTime?     @default(now()) @db.Timestamp(6)
+  article     article[]
+  quizattempt quizattempt[]
+  userscore   userscore[]
 }
 
-model quizzes {
-  id         Int       @id @default(autoincrement())
-  question   String?
-  options    Json?
-  answer     String?   @db.VarChar(50)
-  articleid Int?
-  createdat  DateTime? @default(now()) @db.Timestamptz(6)
-  updatedat  DateTime? @default(now()) @db.Timestamptz(6)
+model article {
+   id        Int       @id @default(autoincrement())
+  title     String?
+  content   String?
+  summary   String?
+  userid    Int?
+  createdat DateTime? @default(now()) @db.Timestamp(6)
+  updateat  DateTime? @default(now()) @db.Timestamp(6)
+  user      user?     @relation(fields: [userid], references: [id])
+  quiz      quiz[]
+}
+
+model quiz {
+  id          Int           @id @default(autoincrement())
+  question    String?
+  options     String[]
+  answer      String?
+  articleid   Int?
+  createdat   DateTime?     @default(now()) @db.Timestamp(6)
+  updatedat   DateTime?     @default(now()) @db.Timestamp(6)
+  article     article?      @relation(fields: [articleid], references: [id])
+  quizanswer  quizanswer[]
+  userscore   userscore[]
+  quizattempt quizattempt[]  // ← энэ мөр нэмэгдэнэ
+}
+model quizattempt {
+  id         Int          @id @default(autoincrement())
+  userid     Int?
+  score      Int?
+  timespent  Int?
+  createdat  DateTime?    @default(now()) @db.Timestamptz(6)
+  quizid     Int?
+  quizanswer quizanswer[]
+  user       user?        @relation(fields: [userid], references: [id])
+  quiz       quiz?        @relation(fields: [quizid], references: [id]) // ← энэ relation байх ёстой
+}
+model quizanswer {
+  id            Int          @id @default(autoincrement())
+  quizattemptid Int?
+  quizid        Int?
+  question      String?
+  selected      String?
+  correct       String?
+  iscorrect     Boolean?
+  createdat     DateTime?    @default(now()) @db.Timestamptz(6)
+  quizattempt   quizattempt? @relation(fields: [quizattemptid], references: [id], onDelete: Cascade)
+  quiz          quiz?        @relation(fields: [quizid], references: [id])
+}
+
+model userscore {
+  id        Int       @id @default(autoincrement())
+  quizid    Int?
+  userid    Int?
+  score     Int?
+  createdat DateTime? @default(now()) @db.Timestamptz(6)
+  quiz      quiz?     @relation(fields: [quizid], references: [id])
+  user      user?     @relation(fields: [userid], references: [id])
 }

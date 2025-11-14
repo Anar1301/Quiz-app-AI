@@ -9,28 +9,30 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { useEffect, useState } from "react";
+import { History } from "@/lib/types";
+import { useUser } from "@clerk/nextjs";
 
 export function AppSidebar() {
   const router = useRouter();
-  type History = {
-    title: string;
-    id: string;
-  };
+  const { user } = useUser();
+
   const [history, SetHistory] = useState<History[]>([]);
   const getHistory = async () => {
+    if (!user) {
+      return;
+    }
     const result = await fetch("/api/generate/summary");
 
     const responseData = await result.json();
 
     const { data } = responseData;
-    console.log({ data });
 
     SetHistory(data);
   };
   useEffect(() => {
     getHistory();
-  }, []);
-  console.log({ history });
+  }, [user]);
+
   const HistoryOnclick = async (data: { id: string }) => {
     const ID = data.id;
     router.push(`/history?search=${ID}`);
@@ -56,7 +58,7 @@ export function AppSidebar() {
   };
 
   return (
-    <Sidebar className="mt-16">
+    <Sidebar className="mt-16 ">
       <div className="flex items-center mx-4 justify-between  gap-20 mt-4 ">
         <div className="font-extrabold h-7">History</div>
         <SidebarTrigger className="h-6 w-6 " />

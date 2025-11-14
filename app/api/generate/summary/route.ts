@@ -8,7 +8,7 @@ const ai = new GoogleGenAI({
 
 export async function GET() {
   const articles = await prisma.article.findMany({
-    include: { Quiz: true },
+    include: { quiz: true, user: true },
     orderBy: { id: "desc" },
   });
 
@@ -17,31 +17,51 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
-    const { content, Title } = await req.json();
+    const { content, title, user } = await req.json();
+    console.log({ user });
 
-    if (!content || !Title) {
+    if (!content || !title) {
       return NextResponse.json(
-        { error: "content болон Title заавал хэрэгтэй" },
+        { error: "content болон articleTitle заавал хэрэгтэй" },
         { status: 400 }
       );
     }
 
-    // Gemini API-аар summary гаргах
+    // 1️⃣ Хэрэглэгчийг шалгаад үүсгэх / шинэчлэх
+    const DeployUser = await prisma.user.upsert({
+      where: { email: user.primaryEmailAddress.emailAddress },
+      update: {
+        name: user.fullName,
+        clerk_id: user.id,
+      },
+      create: {
+        clerk_id: user.id,
+        email: user.primaryEmailAddress.emailAddress,
+        name: user.fullName,
+      },
+    });
+
+    // 2️⃣ Gemini AI-аар summary гаргах
     const prompt = `Please provide a concise summary of the following article: ${content}`;
     const aiResponse = await ai.models.generateContent({
       model: "gemini-2.5-flash",
       contents: prompt,
     });
 
-    const summary = (aiResponse as any).text ?? aiResponse;
+    const summary =
+      typeof (aiResponse as any).text === "string"
+        ? (aiResponse as any).text
+        : JSON.stringify(aiResponse);
 
-    // Article хадгалах (Prisma ашиглан)
+    // 3️⃣ Article-ийг хэрэглэгчийн ID-тай холбож үүсгэх
     const createdArticle = await prisma.article.create({
       data: {
-        title: Title,
+        title: title,
         content: content,
-        summary: summary,
+        summary,
+        userid: DeployUser.id, // ← холбоож байна
       },
+      include: { user: true },
     });
 
     return NextResponse.json({
