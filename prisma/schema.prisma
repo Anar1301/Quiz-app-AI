@@ -1,83 +1,81 @@
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider      = "prisma-client-js"
+  engineType    = "library"
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL") 
 }
 
-model user {
-  id          Int           @id @default(autoincrement())
-  clerk_id    String?
-  email       String?       @unique
-  name        String?
-  createdat   DateTime?     @default(now()) @db.Timestamp(6)
-  updateat    DateTime?     @default(now()) @db.Timestamp(6)
-  article     article[]
-  quizattempt quizattempt[]
-  userscore   userscore[]
-}
-
-model article {
-  id        Int       @id @default(autoincrement())
+model articles {
+  id        String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   title     String?
   content   String?
   summary   String?
-  userid    Int?
-  createdat DateTime? @default(now()) @db.Timestamp(6)
-  updateat  DateTime? @default(now()) @db.Timestamp(6)
-  user      user?     @relation(fields: [userid], references: [id])
-  quiz      quiz[]
+  userid    String     @db.Uuid
+  createdat DateTime?  @default(now()) @db.Timestamptz(6)
+  updatedat DateTime?  @default(now()) @db.Timestamptz(6)
+  users     users      @relation(fields: [userid], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  attempts  attempts[]
+  quizzes   quizzes[]
 }
 
-model quiz {
-  id          Int           @id @default(autoincrement())
-  question    String?
-  options     String[]
-  answer      String?
-  articleid   Int?
-  createdat   DateTime?     @default(now()) @db.Timestamp(6)
-  updatedat   DateTime?     @default(now()) @db.Timestamp(6)
-  article     article?      @relation(fields: [articleid], references: [id])
-  quizanswer  quizanswer[]
-  quizattempt quizattempt[]
-  userscore   userscore[]
-}
-
-model quizattempt {
-  id           Int          @id @default(autoincrement())
-  userid       Int?
-  score        Int?
-  timespent    Int?
-  createdat    DateTime?    @default(now()) @db.Timestamptz(6)
-  quizid       Int?
-  articletitle String?
-  quizanswer   quizanswer[]
-  quiz         quiz?        @relation(fields: [quizid], references: [id])
-  user         user?        @relation(fields: [userid], references: [id])
-}
-
-model quizanswer {
-  id            Int          @id @default(autoincrement())
-  quizattemptid Int?
-  quizid        Int?
-  question      String?
-  selected      String?
-  correct       String?
-  iscorrect     Boolean?
-  createdat     DateTime?    @default(now()) @db.Timestamptz(6)
-  quizattempt   quizattempt? @relation(fields: [quizattemptid], references: [id], onDelete: Cascade)
-  quiz          quiz?        @relation(fields: [quizid], references: [id])
-}
-
-model userscore {
-  id        Int       @id @default(autoincrement())
-  quizid    Int?
-  userid    Int?
-  score     Int?
+model quizzes {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  question  String?
+  options   String[]
+  answer    String?
+  articleid String    @db.Uuid
   createdat DateTime? @default(now()) @db.Timestamptz(6)
-  quiz      quiz?     @relation(fields: [quizid], references: [id])
-  user      user?     @relation(fields: [userid], references: [id])
+  updatedat DateTime? @default(now()) @db.Timestamptz(6)
+  articles  articles  @relation(fields: [articleid], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  scores    scores[]
+}
+
+model scores {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  quizid        String    @db.Uuid
+  userid        String    @db.Uuid
+  attemptid     String    @db.Uuid
+  score         Int?
+  useranswer    String?
+  correctanswer String?
+  createdat     DateTime? @default(now()) @db.Timestamptz(6)
+  updatedat     DateTime? @default(now()) @db.Timestamptz(6)
+  attempts      attempts  @relation(fields: [attemptid], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  quizzes       quizzes   @relation(fields: [quizid], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users         users     @relation(fields: [userid], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model users {
+  id        String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  clerkid   String     @unique
+  email     String     @unique @db.VarChar(50)
+  name      String?    @db.VarChar(50)
+  createdat DateTime?  @default(now()) @db.Timestamptz(6)
+  updatedat DateTime?  @default(now()) @db.Timestamptz(6)
+  articles  articles[]
+  attempts  attempts[]
+  scores    scores[]
+}
+
+model mocksummary {
+  id      String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  text    String?
+  summary String?
+}
+
+model attempts {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  articleid String    @db.Uuid
+  userid    String    @db.Uuid
+  timespent Int?
+  createdat DateTime? @default(now()) @db.Timestamptz(6)
+  updatedat DateTime? @default(now()) @db.Timestamptz(6)
+  articles  articles  @relation(fields: [articleid], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users     users     @relation(fields: [userid], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  scores    scores[]
 }
